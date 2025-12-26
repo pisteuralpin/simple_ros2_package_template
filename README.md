@@ -30,5 +30,6 @@ simple_ros2_package/
 ├── setup.py
 ├── src/
 ├── launch/
+│   └── example.launch.py
 └── README.md
 ```
