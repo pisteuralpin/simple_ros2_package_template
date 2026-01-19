@@ -24,8 +24,8 @@ for folder in "${folders[@]}"; do
     done
 done
 
-placeholders=( "<?package_name?>" "<?package_version?>" "<?author_name?>" "<?author_email?>" "<?package_license?>" "<?package_description?>" )
-questions=( "Package Name" "Package Version" "Author Name" "Author Email" "Package License" "Package Description" )
+placeholders=( "<?package_name?>" "<?package_version?>" "<?author_name?>" "<?author_email?>" "<?package_description?>" )
+questions=( "Package Name" "Package Version" "Author Name" "Author Email" "Package Description" )
 
 declare -A replacements
 
@@ -92,6 +92,54 @@ for f in "${files[@]}"; do
     fi
 done
 
+
+read -rp "Do you want to use GNU-3.0 license ? (y/n): " answer
+case "$answer" in
+    [Yy]* )
+        replacement="GNU-3.0"
+        echo "Keeping 'LICENSE' file."
+        break
+        ;;
+    [Nn]* )
+        echo "Removing 'LICENSE' file."
+        rm -rf "LICENSE"
+        echo "Removing license placeholder from files."
+        replacement="To be specified by user"
+        break
+        ;;
+    * )
+        echo "Please answer yes (y) or no (n)."
+        ;;
+esac
+
+for f in "${files[@]}"; do
+    # Skip unreadable or unwritable files
+    if [ ! -r "$f" ] || [ ! -w "$f" ]; then
+        continue
+    fi
+
+    changed=false
+
+    # Only attempt replacement if the file contains the placeholder
+    if grep -Fq "<?package_license?>" "$f"; then
+        # Escape delimiter and ampersand for sed
+        placeholder_esc=$(printf '%s' "<?package_license?>" | sed -e 's/[\/&]/\\&/g')
+        replacement_esc=$(printf '%s' "$replacement" | sed -e 's/[\/&]/\\&/g')
+
+        if sed --version >/dev/null 2>&1; then
+            sed -i "s/${placeholder_esc}/${replacement_esc}/g" "$f"
+        else
+            sed -i '' -e "s/${placeholder_esc}/${replacement_esc}/g" "$f"
+        fi
+        changed=true
+    fi
+
+    if [ "$changed" = true ]; then
+        updated_count=$((updated_count+1))
+    fi
+done
+
+
 echo "Substitution performed in ${updated_count} file(s)."
 
-echo "Configuration complete. You can now remove 'configure.sh' if desired. Don't forget to change  the license file if you don't use GNU-3.0."
+echo "Configuration complete. You can now remove 'configure.sh' if desired. Don't forget to add a LICENSE file and change in package.xml if you did not choose GNU-3.0 license."
